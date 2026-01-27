@@ -96,3 +96,32 @@ class HeadquartersDaily():
             how="inner",
             on=["城市线路名称", "核心影响环节"]
         )
+        
+        mask_route = (city_day["核心影响环节"] == "路由") & (city_day["延误量"] <= 100)
+        mask_trans = (city_day["核心影响环节"] == "运输") & (city_day["延误量"] <= 10)
+        mask_day = ~(mask_route | mask_trans)
+        
+        city_day = city_day.copy().loc[mask_day]
+        city_day = city_day.merge(
+            cityroute.loc[:,["城市线路名称", "与第一差值(%)", "未达成量"]], 
+            how="left", 
+            on="城市线路名称"
+        )
+        
+        city_day = city_day.rename(columns={
+            "日期": "GPT展示日期",
+            "城市线路名称": "线路名称",
+            "与第一差值(%)": "与第一差值"
+        })
+        
+        # 开始和原表进行匹配
+        city_match = city_day.copy()
+        city_match = city_match.rename(columns={
+            "与第一差值": "与第一差值-复盘",
+            "未达成量": "未达成量-复盘",
+            "延误量": "延误量-复盘",
+            "延误占比": "延误占比-复盘"
+        })
+        
+        match_col = [col for col in city_match.columns if col != "GPT日期"]
+        city_match = city_match.loc[:, match_col]
