@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-@dataclass
+@dataclass(frozen=True)
 class DataConfig():
     col_need: list[str] = field(default_factory=lambda: [
         "揽收网点代码",

@@ -16,7 +16,7 @@ class PathReading():
 
         Args:
             project_name (str, optional): 项目名称. Defaults to "PathReading".
-            method (str, optional): 读取的文件类型. Defaults to "csv".
+            method (str, optional): 读取的文件类型, 参数值有: "excel", "csv". Defaults to "csv".
         """
         
         self.logger: logging.Logger = logging.getLogger(f"{project_name}.{__name__}")
