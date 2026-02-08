@@ -1,7 +1,7 @@
 import logging
 import time
-import openpyxl
 import csv
+import pandas as pd
 
 from alive_progress import alive_bar
 from pathlib import Path
@@ -96,49 +96,27 @@ class ExcelToCsv:
         with alive_bar(title=f"读取 '{path.name}' ", spinner="waves") as bar:
             start_time: float = time.time()
 
-            wb = openpyxl.load_workbook(path, read_only=False, data_only=True)
-            ws = wb.active
+            df_excel: pd.DataFrame = pd.read_excel(path)
 
             elapsed = time.time() - start_time
 
         self.logger.info(
-            f"读取完成! 耗时: {elapsed:.2f}秒 | 行数: {ws.max_row: ,} , 列数: {ws.max_column: ,}"
+            f"读取完成! 耗时: {elapsed:.2f}秒 |"
+            f"行数: {df_excel.shape[0]:: ,} , 列数: {df_excel.shape[1]: ,}"
         )
 
         self.logger.info(f"\n-- 转换 '{path.name}' --")
 
         chunk_size: int = 5_000
-        max_row: int = ws.max_row
-        max_col: int = ws.max_column
+        max_row: int = df_excel.shape[0]
+        max_col: int = df_excel.shape[1]
         total_chunks: int = (max_row + chunk_size - 1) // chunk_size
 
         with open(csv_path, "w", newline="", encoding=encoding) as f:
-            writer = csv.writer(f)
 
-            for chunk_idx, start_row in enumerate(
-                tqdm(
-                    range(1, max_row + 1, chunk_size),
-                    total=total_chunks,
-                    desc="转换进度",
-                    unit="块",
-                    ncols=100,
-                    bar_format="{l_bar}{bar}{r_bar}",
-                )
-            ):
-                end_row = min(start_row + chunk_size - 1, max_row)
-
-                rows = ws.iter_rows(
-                    min_row=start_row,
-                    max_row=end_row,
-                    min_col=1,
-                    max_col=max_col,
-                    values_only=True,
-                )
-
-                for row in rows:
-                    writer.writerow(row)
-
-        wb.close()
+            for i in tqdm(range(0, max_row, chunk_size), desc="写入进度", unit="块"):
+                chunk = df_excel.iloc[i : i + chunk_size]
+                chunk.to_csv(f, index=False, encoding=encoding)
 
         self.logger.info(f"\n-- {path.name}转换完成 --")
 
