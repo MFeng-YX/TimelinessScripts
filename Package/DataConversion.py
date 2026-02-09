@@ -50,6 +50,7 @@ class DataConversion:
             raise T
         except ValueError as V:
             self.logger.error(V, f"输入的路径: {file_path} 不是规范的路径, 请重新输入")
+            raise V
 
         if self.method == "dir":
             if path.is_file():
@@ -63,13 +64,19 @@ class DataConversion:
 
         return path
 
-    def read_data(self, path: Path, dtype: list[str] = ["xlsx"]) -> pd.DataFrame:
+    def read_data(
+        self, path: Path, dtype: list[str] = ["xlsx"]
+    ) -> dict[str, pd.DataFrame]:
         """_summary_
 
         Args:
             path (Path): 读取的文件路径
-            dtype (str | list[str], optional): 变量类型. Defaults to "xlsx".
+            dtype (str | list[str], optional): 变量类型. Defaults to ["xlsx"].
 
         Returns:
-            pd.DataFrame: 读取的数据
+            dict[str, pd.DataFrame]: 读取的数据
         """
+
+        if self.method == "dir":
+            # 遍历指定类型的文件
+            path_list = [p for p in path.iterdir() if p.suffix in dtype]
