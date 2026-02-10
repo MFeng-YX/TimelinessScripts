@@ -64,19 +64,91 @@ class DataConversion:
 
         return path
 
-    def read_data(
-        self, path: Path, dtype: list[str] = ["xlsx"]
-    ) -> dict[str, pd.DataFrame]:
+    def __data_read(self, path: Path, dtype: str) -> pd.DataFrame:
+        """读取数据文件
+
+        Args:
+            path (Path): 文件路径
+            dtype (str): 文件类型
+
+        Returns:
+            pd.DataFrame: 读取的数据表
+        """
+        if dtype not in ["xlsx", "csv", "parquet"]:
+            self.logger.error(
+                "输入的文件类型不符合要求, 请输入: xlsx, csv, parquet 中的一种"
+            )
+
+        self.logger.info(f"\n--读取 '{path.name}' --")
+        with alive_bar(title=f"读取 '{path.name}' ", spinner="waves") as bar:
+            start_time: float = time.time()
+
+            # 读取 excel 文件
+            if dtype == "xlsx":
+                df: pd.DataFrame = pd.read_excel(path)
+            # 读取 csv 文件
+            elif dtype == "csv":
+                df: pd.DataFrame = pd.read_csv(path)
+            # 读取 parquet 文件
+            elif dtype == "parquet":
+                df: pd.DataFrame = pd.read_parquet(path)
+
+            end_time: float = time.time()
+        # 读取过程耗时
+        elapsed: float = end_time - start_time
+        self.logger.info(
+            f"读取完成! 耗时: {elapsed:.2f}秒 |"
+            f"行数: {df.shape[0]:: ,} , 列数: {df.shape[1]: ,}"
+        )
+
+        return df
+
+    def __conversion(self, df: pd.DataFrame, cvsdtype: str, path: Path) -> Path:
+        """转换数据
+
+        Args:
+            df (pd.DataFrame): 读取到的数据
+            cvsdtype (str): 需要转换成为的文件类型
+            path (Path): 读取的文件路径
+
+        Returns:
+            Path: 转换后的文件路径
+        """
+
+        conver_path: Path = path.with_suffix(cvsdtype)
+
+    def read_data(self, path: Path, dtype: str = "xlsx") -> dict[str, pd.DataFrame]:
         """_summary_
 
         Args:
             path (Path): 读取的文件路径
-            dtype (str | list[str], optional): 变量类型. Defaults to ["xlsx"].
+            dtype (str , optional): 变量类型, 可选值: xlsx, csv, parquet. Defaults to "xlsx".
 
         Returns:
             dict[str, pd.DataFrame]: 读取的数据
         """
 
+        if dtype not in ["xlsx", "csv", "parquet"]:
+            self.logger.error(
+                "输入的文件类型不符合要求, 请输入: xlsx, csv, parquet 中的一种"
+            )
+        # 返回的数据字典
+        df_dict: dict[str, pd.DataFrame] = dict()
+
+        # dir-文件夹模式
         if self.method == "dir":
             # 遍历指定类型的文件
-            path_list = [p for p in path.iterdir() if p.suffix in dtype]
+            path_list = [p for p in path.rglob(f"*.{dtype}")]
+            self.logger.info(f"一共读取到: {len(path_list)} 个文件.")
+
+            # 读取文件数据
+            for p in path_list:
+                df: pd.DataFrame = self.__data_read(p, dtype)
+                df_dict[p.name] = df
+
+        # file-文件模式
+        elif self.method == "file":
+            df: pd.DataFrame = self.__data_read(path, dtype)
+            df_dict[path.name] = df
+
+        return df_dict
